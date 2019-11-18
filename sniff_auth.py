@@ -4,25 +4,23 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from base64 import b64decode
 import logging
 import logging.handlers
+from os import makedirs, path
 from scapy.all import sniff
 from scapy.layers.http import HTTPRequest, HTTPResponse
 from scapy.layers.inet import TCP, IP
 from scapy.packet import Packet
 from sys import stdout
 
-log = logging.getLogger('auth_sniffer')
-
 
 def main():
     args = parse_arguments()
-    # setup_logger(args['log_level'])
-    # sniff(iface=args['interface'], filter='tcp port 80', prn=packet_callback, store=0, count=0)
-    setup_logger('DEBUG')
-    sniff(iface='lxdbr0', filter='tcp port 80', prn=packet_callback, store=0, count=0)
+    setup_logger(args['log_level'])
+    sniff(iface=args['interface'], filter='tcp port 80', prn=packet_callback, store=0, count=0)
 
 
 def parse_arguments():
-    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter, description='Capture HTTP Authorization Header field')
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter,
+                            description='Capture HTTP Authorization Header field')
     parser.add_argument('-l', '--log_level', help='minimum Log level',
                         type=str,
                         required=False,
@@ -41,13 +39,17 @@ def parse_arguments():
 
 
 def setup_logger(lvl='INFO'):
+    global log
+    log_filename = '/var/log/auth_sniffer/auth.log'
+    makedirs(path.dirname(log_filename), exist_ok=True)
+
+    logging.basicConfig(filename=log_filename,
+                        filemode='a',
+                        format='%(asctime)-15s %(name)s %(levelname)-8s %(message)s')
+    log = logging.getLogger('auth_sniffer')
+    log.setLevel(getattr(logging, lvl))
     if lvl == 'DEBUG':
         log.addHandler(logging.StreamHandler(stdout))
-
-    log.addHandler(logging.handlers.SysLogHandler(address='/dev/log'))
-
-    logging.basicConfig(format='%(asctime)-15s %(name)s %(levelname)-8s %(message)s')
-    log.setLevel(getattr(logging, lvl))
 
 
 def packet_callback(packet: Packet):
