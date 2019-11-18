@@ -23,7 +23,7 @@ if __name__ == '__main__':
         install_requires=['scapy'],
         entry_points={
             'console_scripts': [
-                'auth_logger = sniff_auth:main',
+                'auth_logger = http_header_sniff.sniff_auth:main',
             ],
         }
     )
